@@ -1,0 +1,36 @@
+Species,maximum_length,Diet,Habitat,Gregariousness,Morphology
+Alloclinus.holderi,10,Mobile benthic invertivores,Bottom,In pairs or sometimes aggregating,COMB
+Anisotremus.davidsonii,58,Mobile benthic invertivores,Pelagic,In pairs or sometimes aggregating,COMA
+Atherinops.sp,37,Zooplanktivores,Pelagic,Forming schools,COMB
+Brachyistius.frenatus,22,Mobile benthic invertivores,In fronds,In pairs or sometimes aggregating,COMA
+Chromis.punctipinnis,25,Zooplanktivores,Roving,In pairs or sometimes aggregating,COMA
+Embiotoca.jacksoni,39,Mobile benthic invertivores,Slightly-bottom,In pairs or sometimes aggregating,COMA
+Embiotoca.lateralis,38,Mobile benthic invertivores,Slightly-bottom,In pairs or sometimes aggregating,COMA
+Girella.nigricans,66,Herbivorous,Roving,In pairs or sometimes aggregating,COMA
+Brachygenys.californiensis,30,Zooplanktivores,Pelagic,Forming schools,COMA
+Halichoeres.semicinctus,38,Mobile benthic invertivores,Roving,In pairs or sometimes aggregating,COMB
+Heterostichus.rostratus,61,Mobile benthic invertivores,In fronds,Solitary,COMB
+Hypocritichthys.analis,20,Zooplanktivores,Roving,In pairs or sometimes aggregating,COMA
+Hypsurus.caryi,30,Mobile benthic invertivores,Roving,In pairs or sometimes aggregating,COMA
+Hypsypops.rubicundus,30,Mobile benthic invertivores,Slightly-bottom,Solitary,COMA
+Leiocottus.hirundo,25,Mobile benthic invertivores,Bottom,Solitary,COMB
+Lythrypnus.dalli,6.4,Mobile benthic invertivores,Bottom,In pairs or sometimes aggregating,COMB
+Medialuna.californiensis,48,Herbivorous,Roving,In pairs or sometimes aggregating,COMA
+Ophiodon.elongatus,152,Macrocarnivores,Bottom,Solitary,COMB
+Oxyjulis.californica,25,Invertivores/zooplanktivores,Roving,Solitary,COMB
+Oxylebius.pictus,25,Mobile benthic invertivores,Slightly-bottom,Solitary,COMB
+Paralabrax.clathratus,72,Macrocarnivores,Roving,Solitary,COMB
+Paralabrax.nebulifer,67,Macrocarnivores,Slightly-bottom,Solitary,COMB
+Phanerodon.furcatus,32,Mobile benthic invertivores,Roving,In pairs or sometimes aggregating,COMA
+Rhacochilus.toxotes,47,Mobile benthic invertivores,Roving,In pairs or sometimes aggregating,COMA
+Rhacochilus.vacca,44.2,Mobile benthic invertivores,Roving,In pairs or sometimes aggregating,COMA
+Rhinogobiops.nicholsii,15,Invertivores/zooplanktivores,Bottom,In pairs or sometimes aggregating,COMB
+Sebastes.atrovirens,42,Mobile benthic invertivores,Slightly-bottom,In pairs or sometimes aggregating,COMA
+Sebastes.auriculatus,56,Macrocarnivores,Slightly-bottom,Solitary,COMA
+Sebastes.carnatus,39,Macrocarnivores,Slightly-bottom,Solitary,COMA
+Sebastes.chrysomelas,39,Macrocarnivores,Slightly-bottom,Solitary,COMA
+Sebastes.melanops,63,Macrocarnivores,Slightly-bottom,In pairs or sometimes aggregating,COMA
+Sebastes.miniatus,91,Macrocarnivores,Slightly-bottom,Solitary,COMA
+Semicossyphus.pulcher,91,Mobile benthic invertivores,Slightly-bottom,Solitary,COMA
+Urolophus.halleri,58,Macrocarnivores,Bottom,Solitary,DEP
+Zapteryx.exasperata,83,Macrocarnivores,Bottom,Solitary,DEP
