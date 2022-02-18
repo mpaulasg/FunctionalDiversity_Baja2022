@@ -1,6 +1,6 @@
 trait_name,trait_type
 maximum_length,Q
-Diet,N
-Habitat,O
-Gregariousness,O
-Morphology,O
+diet,N
+habitat,O
+gregariousness,O
+morphology,O

@@ -7,7 +7,7 @@
 ## (to submit in Hydrobiologia)
 ##
 ## Authors: Sgarlatta, M. Paula, Ramirez-Valdez, Arturo,
-## Gomez-Gomez, Antonio, Ladah, Lydia B., 
+## Ladah, Lydia B., 
 ## Calderon-Aguilera, Luis E.
 ## 
 ## Code by Paula Sgarlatta - following code from Camille Magneville 
@@ -28,8 +28,8 @@
 rm(list=ls()) # cleaning memory
 
 #load packages
-#library(remotes)
-#remotes::install_github("CmlMagneville/mFD")
+
+library(here)
 library(mFD)
 library(ggplot2)
 
@@ -37,48 +37,52 @@ library(ggplot2)
 #### 1 - Load (and transform) datasets ####
 
 # load traits data - Kelp and rocky reefs:
-traits <- read.csv("data/Baja_traits_fish.csv")
+
+traits <- read.csv(here::here("data", "Baja_traits_fish.csv"))
 
 # transform columns type:
 
 #size as numeric
 traits$maximum_length <- as.numeric(traits$maximum_length)
 
-# diet as factor
+# diet as ordinal
 
-traits$Diet <- as.factor(traits$Diet) #I think this is the correct way
-
-#traits$Diet <- factor(traits[,"Diet"], levels=c("Herbivorous", "Invertivores/zooplanktivores", 
-      #"Macrocarnivores", "Mobile benthic invertivores", "Zooplanktivores" ), ordered = TRUE)
+traits$diet <- as.factor(traits$diet) 
 
 #habitat as ordinal
 
-traits$Habitat <-factor(traits[,"Habitat"], levels=c("Bottom", "Slightly-bottom","In fronds", "Pelagic", 
-                                                     "Roving" ), ordered = TRUE )
-#gregariousness as ordinal
+# traits$Habitat <-factor(traits[,"Habitat"], levels=c("Bottom", "Slightly-bottom","In fronds", "Pelagic", 
+                                                     # "Roving" ), ordered = TRUE )
+traits$habitat <-factor(traits[,"habitat"], levels=c("B", "S-B","FRO", "PEL", 
+                                                      "ROV" ), ordered = TRUE )
 
-traits$Gregariousness <- as.ordered(traits$Gregariousness)
-ordered (traits$Gregariousness)
+# #gregariousness as ordinal
+# 
+# traits$Gregariousness <- as.ordered(traits$Gregariousness)
+# ordered (traits$Gregariousness)
 
 # Change the order of the groups with Solitary < In Pairs or 
 #sometimes aggregating < Forming Schools
 
-traits[, "Gregariousness"] <- factor(traits[, "Gregariousness"],
-                                          levels = c("Solitary", "In pairs or sometimes aggregating","Forming schools"), ordered = TRUE)
+traits$gregariousness <- factor(traits[, "gregariousness"],
+                  #levels = c("Solitary", "In pairs or sometimes aggregating","Forming schools"), 
+                  levels = c("SOL", "PAIR","SCHO"),
+                  ordered = TRUE)
 
 #morphology as ordinal
 
-traits$Morphology <- factor(traits[,"Morphology"], levels=c("COMA", "COMB", "ANG", "DEP"), ordered = TRUE ) ###Need to change this to English
+traits$morphology <- factor(traits[,"morphology"], 
+                            levels=c("COMH", "COML", "EEL", "RAY"), ordered = TRUE ) 
 
 # add species as row names:
 
 rownames(traits) <- traits$species_id
-traits <- tibble::column_to_rownames(traits, var = "Species")
+traits <- tibble::column_to_rownames(traits, var = "species")
 
 # load fish composition data - both kelp forests 
 #and rocky reefs
 
-fish <- read.csv("data/fish_kelp&rocky_reef.csv")
+fish <- read.csv(here::here("data", "fish_kelp&rocky_reef.csv"))
 
 # group between habitats:
 
@@ -104,13 +108,13 @@ for (c in colnames(fish[, - c(1, ncol(fish))])) {
 fish_habitat <- fish_habitat[, - c(1,42,43, ncol(fish_habitat))]
 
 # load trait types data:
-traits_type <- read.csv("data/traits_type.csv")
+traits_type <- read.csv(here::here("data", "traits_type.csv"))
 
 ################################################################################
 
 
 
-#### 2 - Basic FD analysis ####
+#### 2 - Basic FD analysis - for plotting functional space ####
 
 
 ## Species traits summary:
@@ -130,19 +134,6 @@ fish_traits_summ <- mFD::asb.sp.summary(asb_sp_w = fish_habitat)
 
 # retrieve occurrence matrix:
 occ_matrix <- fish_traits_summ$asb_sp_occ
-
-# total biomass of each species:
-fish_traits_summ$sp_tot_w
-
-# total biomass for each asb (ie habitat):
-fish_traits_summ$asb_tot_w
-
-# species richness per habitat:
-fish_traits_summ$asb_sp_richn
-
-# list of species present in each assemblage (ie habitat):
-fish_traits_summ$asb_sp_nm
-
 
 ### Compute functional distance:
 
@@ -181,7 +172,6 @@ fspaces_quality <- mFD::quality.fspaces(
 fspaces_quality$quality_fspaces
 
 # We can see that the functional space with the lowest quality metric is the one with 4 dimensions (pcoa_4d=0.42),
-# Will use 3D to build the functional space
 
 # illustrate quality of functional space (for Supp Material)
 
@@ -221,7 +211,7 @@ cor_tr_faxes$tr_faxes_stat
 
 # get the plot:
 traits_axes <- cor_tr_faxes$tr_faxes_plot
-traits_axes   # Will need to change the labels 
+traits_axes   
 
 # export figure
 
@@ -303,7 +293,7 @@ rm(list=ls()) # cleaning memory
 library(mFD)
 library(ggplot2)
 
-traits_kelp <- read.csv("data/kelp_traits.csv")
+traits_kelp <- read.csv(here::here("data", "kelp_traits.csv"))
 
 # transform columns type:
 
