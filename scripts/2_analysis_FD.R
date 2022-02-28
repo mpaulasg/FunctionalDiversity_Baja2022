@@ -6,9 +6,8 @@
 ## small-scale habitat complexity in a temperate ecosystem 
 ## (to submit in Hydrobiologia)
 ##
-## Authors: Sgarlatta, M. Paula, Ramírez-Valdez, Arturo,
-## Gómez-Gómez, Antonio, Ladah, Lydia B., 
-## Calderon-Aguilera, Luis E.
+## Authors: Sgarlatta, M. Paula, Ramirez-Valdez, Arturo,
+## Ladah, Lydia B., Calderon-Aguilera, Luis E.
 ## 
 ## Code by Paula Sgarlatta 
 ##
@@ -19,90 +18,89 @@
 ## 
 ###############################################################################
 
-#rm(list=ls()) # cleaning memory
+rm(list=ls()) # cleaning memory
 
 #load packages
 
+library(here)
+library(tidyverse)
+library(dplyr)
 library(ggpubr)
+library(car)
 library(glmmTMB)
 library(emmeans)
 library(ggplot2)
 library(dplyr)
 library(DHARMa)
 
+# Load data
+
+fd_values <- read.csv(here::here("data", "fd_values_replicates.csv"))
+
+metadata <- read.csv(here::here("data", "kelp&rocky_metadata_replicate.csv"))
+
+
+#Prepare data for stats
+
+fd_stats <- fd_values %>% 
+  left_join(metadata, by=c("X"="Code")) %>% 
+  select(-X, -HabitatID, -Replicate) %>% 
+  relocate(Site, Habitat, .before = "sp_richn")
+
+
 ##### t test between habitats (RR and KF) #####
 
 ##Species richness
 
 #Normality - QQ plots
-ggqqplot(fd_kelp$sp_richn)   
-ggqqplot(fd_RR$sp_richn)    
 
-t.test(fd_kelp$sp_richn,fd_RR$sp_richn, var.equal=TRUE)
+sp_kelp <- fd_stats %>% 
+  filter(Habitat =="Kelp")
 
-#No differences between habitats - p=0.45
+sp_rocky<- fd_stats %>% 
+  filter(Habitat =="Rocky")
 
-kelp <- data.frame(KF=fd_kelp$sp_richn)
+ggqqplot(sp_kelp$sp_richn)   
+ggqqplot(sp_rocky$sp_richn)    
 
-row.names(kelp)<-row.names(rep(c("K"), each=35))
+t.test(sp_kelp$sp_richn,sp_rocky$sp_richn, var.equal=TRUE)
 
-two_habitats <- as.matrix(c(fd_kelp$sp_richn,fd_RR$sp_richn))
-
-## This is not working. I'll do it manually-try again to do it in R
-
-
+#No differences between habitats - p=0.46
 
 ##Functional richness
 
 #Normality
-ggqqplot(fd_kelp$fric)  
-ggqqplot(fd_RR$fric)    
+ggqqplot(sp_kelp$fric)  
+ggqqplot(sp_rocky$fric)    
 
-t.test(fd_kelp$fric,fd_RR$fric, var.equal=TRUE)
+t.test(sp_kelp$fric,sp_rocky$fric, var.equal=TRUE)
 
-#No differences between habitats - p=0.387
-
-kelp <- data.frame(KF=fd_kelp$fric)
-
-row.names(kelp)<-row.names(rep(c("K"), each=35))
-
-two_habitats <- as.matrix(c(fd_kelp$fric,fd_RR$fric))
-
-## This is not working. I'll do it manually-try again to do it in R
+#No differences between habitats - p=0.74
 
 
 ##Functional evenness
 
 #Normality
-ggqqplot(fd_kelp$feve)   
-ggqqplot(fd_RR$feve)     
+ggqqplot(sp_kelp$feve)   
+ggqqplot(sp_rocky$feve)     
 
-t.test(fd_kelp$feve,fd_RR$feve, var.equal=TRUE)
+t.test(sp_kelp$feve,sp_rocky$feve, var.equal=TRUE)
 
-#Differences between habitats - p=0.002
+#No Differences between habitats - p=0.38
 
 ##Functional divergence
 
 #Normality
-ggqqplot(fd_kelp$fdiv)  ## only few points outside 
-ggqqplot(fd_RR$fdiv)     ## only few points outside 
+ggqqplot(sp_kelp$fdiv)  
+ggqqplot(sp_rocky$fdiv)     
 
-t.test(fd_kelp$fdiv,fd_RR$fdiv, var.equal=TRUE)
+t.test(sp_kelp$fdiv,sp_rocky$fdiv, var.equal=TRUE)
 
-### Differences between habitats - p=0.002
+### Differences between habitats - p=0.02
 
 
 ##### ANOVA between sites (within each habitat) #####
 
-# Adding transect to first column
-
-kelp <- tibble::rownames_to_column(fd_kelp, "transect")
-RR <- tibble::rownames_to_column(fd_RR, "transect")
-
-# Adding site to data
-
-kelp$site <- substr(kelp$transect,1,2)
-RR$site <- substr(RR$transect,1,2)
 
 ############################KELP FORESTS #############################
 
@@ -208,11 +206,19 @@ bartlett.test(fric ~ site, data=RR)  #p=0.15
 ##########KELP FORESTS ##########
 
 
-#loading data
+## Basic GLMM models
 
-habitat_KF <- read.csv("data/habitat_kelp.csv")
+sp_habitat <- glmmTMB(sp_richn ~ Habitat + (1|Site), data = fd_stats,
+                      family = poisson())
 
+summary(sp_habitat)
+Anova(sp_habitat) #p=0.6
 
+fric_habitat <- glmmTMB(fric ~ Habitat + (1|Site), data = fd_stats,
+                        family = beta_family())
+
+summary(fric_habitat)
+Anova(fric_habitat) #p=0.9
 
 ### make tables to see if the variables are correlated
 

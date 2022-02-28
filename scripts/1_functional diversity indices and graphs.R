@@ -7,8 +7,7 @@
 ## (to submit in Hydrobiologia)
 ##
 ## Authors: Sgarlatta, M. Paula, Ramirez-Valdez, Arturo,
-## Ladah, Lydia B., 
-## Calderon-Aguilera, Luis E.
+## Ladah, Lydia B., Calderon-Aguilera, Luis E.
 ## 
 ## Code by Paula Sgarlatta - following code from Camille Magneville 
 ## (https://github.com/CmlMagneville/mFD) 
@@ -32,11 +31,12 @@ rm(list=ls()) # cleaning memory
 library(here)
 library(mFD)
 library(ggplot2)
+library(tidyverse)
+library(dplyr)
 
+###############################################################
 
-#### 1 - Load (and transform) datasets ####
-
-# load traits data - Kelp and rocky reefs:
+#### 1 - Load (and transform) datasets - kelp and rocky reefs
 
 traits <- read.csv(here::here("data", "Baja_traits_fish.csv"))
 
@@ -51,23 +51,16 @@ traits$diet <- as.factor(traits$diet)
 
 #habitat as ordinal
 
-# traits$Habitat <-factor(traits[,"Habitat"], levels=c("Bottom", "Slightly-bottom","In fronds", "Pelagic", 
-                                                     # "Roving" ), ordered = TRUE )
 traits$habitat <-factor(traits[,"habitat"], levels=c("B", "S-B","FRO", "PEL", 
-                                                      "ROV" ), ordered = TRUE )
+                                                     "ROV" ), ordered = TRUE )
 
 # #gregariousness as ordinal
-# 
-# traits$Gregariousness <- as.ordered(traits$Gregariousness)
-# ordered (traits$Gregariousness)
-
 # Change the order of the groups with Solitary < In Pairs or 
 #sometimes aggregating < Forming Schools
 
 traits$gregariousness <- factor(traits[, "gregariousness"],
-                  #levels = c("Solitary", "In pairs or sometimes aggregating","Forming schools"), 
-                  levels = c("SOL", "PAIR","SCHO"),
-                  ordered = TRUE)
+                    levels = c("SOL", "PAIR","SCHO"),
+                    ordered = TRUE)
 
 #morphology as ordinal
 
@@ -78,34 +71,6 @@ traits$morphology <- factor(traits[,"morphology"],
 
 rownames(traits) <- traits$species_id
 traits <- tibble::column_to_rownames(traits, var = "species")
-
-# load fish composition data - both kelp forests 
-#and rocky reefs
-
-fish <- read.csv(here::here("data", "fish_kelp&rocky_reef.csv"))
-
-# group between habitats:
-
-fish$hab <- rep(c("Kelp", "Reef"), each=36) 
-
-# create a new dataframe for habitat (and not transects):
-
-fish_habitat <- as.data.frame(matrix(ncol = ncol(fish), nrow = 2))
-colnames(fish_habitat) <- colnames(fish)
-fish_habitat$site_id <- c("Kelp", "Reef")
-
-rownames(fish_habitat) <- fish_habitat$site_id
-
-# fill this new df:
-for (c in colnames(fish[, - c(1, ncol(fish))])) {
-  hab_kelp <- mean(fish[which(fish$hab == "Kelp"), c])
-  fish_habitat["Kelp", c] <- hab_kelp
-  hab_rocky <- mean(fish[which(fish$hab == "Reef"), c])
-  fish_habitat["Reef", c] <- hab_rocky
-}
-# remove Site, site id and habitat:
-
-fish_habitat <- fish_habitat[, - c(1,42,43, ncol(fish_habitat))]
 
 # load trait types data:
 traits_type <- read.csv(here::here("data", "traits_type.csv"))
@@ -120,20 +85,11 @@ traits_type <- read.csv(here::here("data", "traits_type.csv"))
 ## Species traits summary:
 
 fish_traits_summ <- mFD::sp.tr.summary(tr_cat = traits_type, 
-                                 sp_tr  = traits)
+                                       sp_tr  = traits)
 # repartition of traits:
 
 fish_traits_summ$tr_summary_list
 
-
-## summary of the assemblages * species data frame:
-
-fish_habitat <- as.matrix(fish_habitat)
-
-fish_traits_summ <- mFD::asb.sp.summary(asb_sp_w = fish_habitat) 
-
-# retrieve occurrence matrix:
-occ_matrix <- fish_traits_summ$asb_sp_occ
 
 ### Compute functional distance:
 
@@ -171,14 +127,14 @@ fspaces_quality <- mFD::quality.fspaces(
 # retrieve table of quality metric:
 fspaces_quality$quality_fspaces
 
-# We can see that the functional space with the lowest quality metric is the one with 4 dimensions (pcoa_4d=0.42),
+# We can see that the functional space with the lowest quality metric is the one with 4 dimensions (pcoa_4d=0.037),
 
 # illustrate quality of functional space (for Supp Material)
 
 fs_qual <- mFD::quality.fspaces.plot(
   fspaces_quality            = fspaces_quality,
   quality_metric             = "mad",
-  fspaces_plot               = c("tree_average", "pcoa_2d", "pcoa_3d", "pcoa_4d"),
+  fspaces_plot               = c("tree_average","pcoa_1d", "pcoa_2d", "pcoa_3d", "pcoa_4d"),
   name_file                  = NULL,
   range_dist                 = NULL,
   range_dev                  = NULL,
@@ -188,6 +144,8 @@ fs_qual <- mFD::quality.fspaces.plot(
   x_lab                      = "Trait-based distance")
 
 fs_qual
+
+faxes_coord_habitat <-fspaces_quality$details_fspaces$sp_pc_coord
 
 # export figure
 
@@ -220,28 +178,120 @@ ggsave(plot = traits_axes, filename  = here::here("figures", "figure2_SM.png"),
 
 ################################################################################
 
-#### 3 - Compute functional alpha diversity indices ####
+#### 3 - Compute functional alpha diversity indices
+
+## Load fish biomass data and metadata
+
+fish <- read.csv(here::here("data", "fish_kelp&rocky_reef.csv"))  
+  
+metadata   <- read.csv(here::here("data", "kelp&rocky_metadata.csv"))
+
+#Prepare data to sum/average
+
+fish_tosum <- fish %>% 
+  left_join(metadata, by="Code") 
+
+fish_replicates <-fish_tosum %>% 
+  pivot_longer(cols= contains("."), names_to="species") %>%
+  mutate(value=as.numeric(value)) %>%
+  group_by(Site, HabitatID, Replicate, species) %>%
+  summarize(total=sum(value)) %>% 
+  ungroup() %>%
+  pivot_wider(names_from = "species", values_from = "total") %>%
+  mutate(Code=paste(Site, Replicate, HabitatID, sep="_"), .before="Site") %>% 
+  select(-Site, -HabitatID,-Replicate) %>% 
+  column_to_rownames("Code") %>% 
+  as.matrix()
 
 ### Compute indices:
 alpha_fd_indices <- mFD::alpha.fd.multidim(
   sp_faxes_coord   = sp_faxes_coord[, c("PC1", "PC2", "PC3", "PC4")],
-  asb_sp_w         = fish_habitat,
+  asb_sp_w         = fish_replicates,
   ind_vect         = c("fric", "feve", "fdiv"),
   scaling          = TRUE,
   check_input      = TRUE,
   details_returned = TRUE)
 
 
-fd_values <- alpha_fd_indices$functional_diversity_indices
+fd_values_replicates <- alpha_fd_indices$functional_diversity_indices
+
+## saving as csv
+
+write.csv(fd_values_replicates, file=here::here("data", 
+  "fd_values_replicates.csv") )
 
 
 ###############################################################
 
-#### 4 - Graph functional space ####
+#### 4 - Graph functional space 
+#### Only for kelp forests and rocky reef  in general
+
+#Metadata for replicates
+
+metadata_replicates <- read.csv(here::here("data", "kelp&rocky_metadata_replicate.csv"))
+
+# computing biomass of species in each habitat
+habitat_fric <- rbind( 
+  Kelp = apply(fish_replicates[metadata_replicates[which(metadata_replicates$HabitatID=="K"),"Code"],],2,max ),
+  Rocky = apply(fish_replicates[metadata_replicates[which(metadata_replicates$HabitatID=="R"),"Code"],],2,max )
+) 
+
+# Set faxes limits:
+# set range of axes if c(NA, NA):
+range_sp_coord_habitat  <- range(faxes_coord_habitat)
+range_faxes_lim <- range_sp_coord_habitat + c(-1, 1)*(range_sp_coord_habitat[2] - 
+                                                       range_sp_coord_habitat[1]) * 0.05
+
+# Retrieve the background plot:
+ggplot_bg_habitat <- mFD::background.plot(
+  range_faxes = range_faxes_lim, 
+  faxes_nm    = c("PC 1", "PC 2"), 
+  color_bg    = "grey90") 
+
+# Retrieve vertices names:
+
+sp_faxes_coord_habitat_2D <- faxes_coord_habitat[, c("PC1", "PC2")]
+
+vert_nm_habitat <- vertices(sp_faxes_coord_habitat_2D, 
+                           order_2D = TRUE, check_input = TRUE)
+
+# Plot in white the convex hull of all fruits species:
+ggplot_fric <- mFD::fric.plot(
+  ggplot_bg       = ggplot_bg_habitat,
+  asb_sp_coord2D  = list(c("Kelp" =sp_faxes_coord_habitat_2D,
+                           "Rocky" =sp_faxes_coord_habitat_2D)),
+  asb_vertices_nD = list(c(vert_nm_habitat)),
+  plot_sp         = TRUE,
+  color_ch        = c("Kelp" = "black", "Rocky" = "red"), 
+  fill_ch         = c("Kelp" = "black", "Rocky" = "red"), 
+  alpha_ch        = c("Kelp" = 0.3, "Rocky" = 0.3),
+  size_sp = c("Kelp" = 1, "Rocky" = 1),
+  shape_sp = c("Kelp" = 16, "Rocky" = 16),
+  color_sp = c("Kelp" = "black", "Rocky" = "red"),
+  fill_sp = c("Kelp" = "black", "Rocky" = "red"),
+  size_vert = c("Kelp" = 1, "Rocky" = 1),
+  color_vert = c("Kelp" = "black", "Rocky" = "red"),
+  fill_vert = c("Kelp" = "black", "Rocky" = "red"),
+  shape_vert = c("Kelp" = 16, "Rocky" = 16))
+
+ggplot_fric
+### This one is not working - keep trying 
+
+### Calculate fric for kelp and rocky reef
+
+fd_habitat <- mFD::alpha.fd.multidim(
+  sp_faxes_coord   = sp_faxes_coord[, c("PC1", "PC2", "PC3", "PC4")],
+  asb_sp_w         = habitat_fric,
+  ind_vect         = c("fric", "feve", "fdiv"),
+  scaling          = TRUE,
+  check_input      = TRUE,
+  details_returned = TRUE)
+
+fd_habitat_replicates <- fd_habitat$functional_diversity_indices
 
 plots_alpha <- mFD::alpha.multidim.plot(
-  output_alpha_fd_multidim = alpha_fd_indices,
-  plot_asb_nm              = c("Kelp", "Reef"),
+  output_alpha_fd_multidim = fd_habitat,
+  plot_asb_nm              = c("Kelp", "Rocky"),
   ind_nm                   = c("fric"),
   faxes                    = paste0("PC", 1:3),
   faxes_nm                 = NULL,
@@ -276,315 +326,4 @@ plot_fric
 ggsave(plot = plot_fric, file  = here::here("figures", "figure3.png"),
        height = 25, width = 25, unit = "cm")
 
-
-###############################################################
-
-#### 5 - FD indices per site and transect for 
-####              statistical analysis   
-
-#### Load (and transform) datasets for kelp ####
-
-rm(list=ls()) # cleaning memory
-
-#load packages
-
-#library(remotes)
-#remotes::install_github("CmlMagneville/mFD")
-library(mFD)
-library(ggplot2)
-
-traits_kelp <- read.csv(here::here("data", "kelp_traits.csv"))
-
-# transform columns type:
-
-#size as numeric:
-
-traits_kelp$maximum_length <- as.numeric(traits_kelp$maximum_length)
-
-
-#diet as factor
-
-traits_kelp$Diet <- as.factor(traits_kelp$Diet)
-
-#traits_kelp$Trophic.groups <- factor(traits_kelp[,"Trophic.groups"], levels=c("Herbivorous", "Invertivores/zooplanktivores", 
-                            #"Macrocarnivores", "Mobile benthic invertivores", "Zooplanktivores" ), ordered = TRUE)
-
-#habitat as ordinal
-
-traits_kelp$Habitat <-factor(traits_kelp[,"Habitat"], levels=c("Bottom", "Slightly-bottom", "In fronds", 
-                      "Pelagic", "Roving" ), ordered = TRUE )
-
-#gregariousness as ordinal
-
-traits_kelp$Gregariousness <- as.ordered(traits_kelp$Gregariousness)
-ordered (traits_kelp$Gregariousness)
-
-# Change the order of the groups with Solitary < In Pairs or 
-#sometimes aggregating < Forming Schools
-
-traits_kelp[, "Gregariousness"] <- factor(traits_kelp[, "Gregariousness"],
-                                     levels = c("Solitary", "In pairs or sometimes aggregating","Forming schools"), ordered = TRUE)
-
-#morphology as ordinal:
-
-traits_kelp$Morphology <- factor(traits_kelp[,"Morphology"], levels=c("COMA", "COMB", "DEP"), ordered = TRUE )
-
-# add species as row names:
-
-rownames(traits_kelp) <- traits_kelp$species_id
-traits_kelp <- tibble::column_to_rownames(traits_kelp, var = "Species")
-
-# load fish composition data for kelp forests 
-
-fish_kelp <- read.csv("data/fish_kelp.csv")
-
-# add transects as row names:
-rownames(fish_kelp) <- fish_kelp$species_id
-fish_kelp <- tibble::column_to_rownames(fish_kelp, var = "Site")
-
-# load trait types data:
-traits_type <- read.csv("data/traits_type.csv")
-
-###### Load (and transform) datasets for rocky reef ######
-
-traits_RR <- read.csv("data/RR_traits.csv")
-
-# transform columns type:
-
-#size as numerical
-traits_RR$maximum_length <- as.numeric(traits_RR$maximum_length)
-
-#Diet as factor
-traits_RR$Diet <- as.factor(traits_RR$Diet)
-
-#habitat as ordinal
-
-traits_RR$Habitat <-factor(traits_RR[,"Habitat"], levels=c("Bottom", "Slightly-bottom", 
-                                                               "Pelagic", "Roving" ), ordered = TRUE )
-#gregariousness as ordinal
-
-traits_RR$Gregariousness <- as.ordered(traits_RR$Gregariousness)
-
-# Change the order of the groups with Solitary < In Pairs or 
-#sometimes aggregating < Forming Schools
-
-traits_RR[, "Gregariousness"] <- factor(traits_RR[, "Gregariousness"],
-        levels = c("Solitary", "In pairs or sometimes aggregating","Forming schools"), ordered = TRUE)
-
-#morphology as ordinal 
-
-traits_RR$Morphology <- factor(traits_RR[,"Morphology"], levels=c("COMA", "COMB", "ANG"), ordered = TRUE )
-
-# add species as row names:
-
-rownames(traits_RR) <- traits_RR$species_id
-traits_RR <- tibble::column_to_rownames(traits_RR, var = "Species")
-
-# load fish composition data for rocky reefs 
-
-fish_RR <- read.csv("data/fish_RR.csv")
-
-# add transects as row names:
-rownames(fish_RR) <- fish_RR$species_id
-fish_RR <- tibble::column_to_rownames(fish_RR, var = "Site")
-
-################################################################################
-
-
-
-#### 6 - Basic FD analysis for kelp forest and RR separated ####
-
-
-## Species traits summary:
-
-
-kelp_traits_summ <- mFD::sp.tr.summary(tr_cat = traits_type, 
-                                       sp_tr  = traits_kelp)
-
-
-
-RR_traits_summ <- mFD::sp.tr.summary(tr_cat = traits_type, 
-                                       sp_tr  = traits_RR)
-
-# Distribution of traits:
-
-kelp_traits_summ$tr_summary_list
-
-
-RR_traits_summ$tr_summary_list
-
-## summary of the assemblages * species data frame:
-
-fish_kelp <- as.matrix(fish_kelp)
-
-fish_RR <- as.matrix(fish_RR)
-
-kelp_traits_summ <- mFD::asb.sp.summary(asb_sp_w = fish_kelp) 
-
-RR_traits_summ <- mFD::asb.sp.summary(asb_sp_w = fish_RR)
-
-# retrieve occurrence matrix:
-
-occ_matrix_kelp <- kelp_traits_summ$asb_sp_occ
-
-occ_matrix_RR <- RR_traits_summ$asb_sp_occ
-
-# total biomass of each species:
-
-kelp_traits_summ$sp_tot_w
-
-RR_traits_summ$sp_tot_w
-
-# total biomass for each transect:
-
-kelp_traits_summ$asb_tot_w
-
-RR_traits_summ$asb_tot_w
-
-# species richness per transect:
-
-kelp_traits_summ$asb_sp_richn
-
-RR_traits_summ$asb_sp_richn
-
-
-### Compute functional distance:
-
-# compute functional distance based on traits:
-sp_dist_kelp <- mFD::funct.dist(
-  sp_tr  = traits_kelp,
-  tr_cat = traits_type,
-  metric = "gower",
-  scale_euclid  = "scale_center",
-  ordinal_var = "classic",
-  weight_type = "equal",
-  stop_if_NA  = TRUE)
-
-sp_dist_RR <- mFD::funct.dist(
-  sp_tr  = traits_RR,
-  tr_cat = traits_type,
-  metric = "gower",
-  scale_euclid  = "scale_center",
-  ordinal_var = "classic",
-  weight_type = "equal",
-  stop_if_NA  = TRUE)
-
-### Compute functional spaces and their quality:
-
-# compute the quality of functional spaces:
-fspaces_quality_kelp <- mFD::quality.fspaces(
-  sp_dist             = sp_dist_kelp, 
-  maxdim_pcoa         = 10, 
-  deviation_weighting = "absolute", 
-  fdist_scaling       = FALSE, 
-  fdendro             = "average")
-
-fspaces_quality_RR <- mFD::quality.fspaces(
-  sp_dist             = sp_dist_RR, 
-  maxdim_pcoa         = 10, 
-  deviation_weighting = "absolute", 
-  fdist_scaling       = FALSE, 
-  fdendro             = "average")
-
-# retrieve table of quality metric:
-fspaces_quality_kelp$quality_fspaces
-
-# We can see that the functional space with the lowest quality metric is the one with three dimensions (pcoa_3d=0.43)
-# Will use 3D to build the functional space
-
-fspaces_quality_RR$quality_fspaces
-
-# We can see that the functional space with the lowest quality metric is the one with three dimensions (pcoa_3d=0.40)
-# Will use 3D to build the functional space
-
-
-### Test correlation between traits and functional axes 
-
-# retrieve coordinates of species:
-sp_faxes_coord_kelp <- fspaces_quality_kelp$"details_fspaces"$"sp_pc_coord"
-
-sp_faxes_coord_RR <- fspaces_quality_RR$"details_fspaces"$"sp_pc_coord"
-
-# test correlation between traits and axes:
-cor_tr_faxes_kelp <- mFD::traits.faxes.cor(
-  sp_tr          = traits_kelp, 
-  sp_faxes_coord = sp_faxes_coord_kelp[, c("PC1", "PC2", "PC3")], 
-  plot           = TRUE)
-
-cor_tr_faxes_RR <- mFD::traits.faxes.cor(
-  sp_tr          = traits_RR, 
-  sp_faxes_coord = sp_faxes_coord_RR[, c("PC1", "PC2", "PC3")], 
-  plot           = TRUE)
-
-# get the table of correlation:
-cor_tr_faxes_kelp$tr_faxes_stat
-
-cor_tr_faxes_RR$tr_faxes_stat
-
-
-# get the plot:
-traits_axes_kelp <- cor_tr_faxes_kelp$tr_faxes_plot
-
-traits_axes_RR <- cor_tr_faxes_RR$tr_faxes_plot
-
-
-################################################################################
-
-#### 7 - Compute functional alpha diversity indices (for
-#### kelp forest and RR separetely) ####
-
-### Compute indices:
-
-  fd_indices_kelp <- mFD::alpha.fd.multidim(
-  sp_faxes_coord   = sp_faxes_coord_kelp[, c("PC1", "PC2", "PC3")],
-  asb_sp_w         = fish_kelp,
-  ind_vect         = c("fric", "feve", "fdiv"),
-  scaling          = TRUE,
-  check_input      = TRUE,
-  details_returned = TRUE)
-
-## Need to eliminate some transects as they have less than 3 sp
-
-fish_kelp_2 <- fish_kelp[-c(20), ]
-
-fish_kelp_2 <- as.matrix(fish_kelp_2)
-
-fd_indices_kelp <- mFD::alpha.fd.multidim(
-  sp_faxes_coord   = sp_faxes_coord_kelp[, c("PC1", "PC2", "PC3")],
-  asb_sp_w         = fish_kelp_2,
-  ind_vect         = c("fric", "feve", "fdiv"),
-  scaling          = TRUE,
-  check_input      = TRUE,
-  details_returned = TRUE)
-
-fd_kelp <- fd_indices_kelp$functional_diversity_indices
-
-write.csv(fd_kelp, file="data/fd_kelp.csv")
-
-fd_indices_RR <- mFD::alpha.fd.multidim(
-  sp_faxes_coord   = sp_faxes_coord_RR[, c("PC1", "PC2", "PC3")],
-  asb_sp_w         = fish_RR,
-  ind_vect         = c("fric", "feve", "fdiv"),
-  scaling          = TRUE,
-  check_input      = TRUE,
-  details_returned = TRUE)
-
-## Need to eliminate some transects as they have less than 3 sp
-
-fish_RR_2 <- fish_RR[-c(33), ]
-
-fish_RR_2 <- as.matrix(fish_RR_2)
-
-fd_indices_RR <- mFD::alpha.fd.multidim(
-  sp_faxes_coord   = sp_faxes_coord_RR[, c("PC1", "PC2", "PC3")],
-  asb_sp_w         = fish_RR_2,
-  ind_vect         = c("fric", "feve", "fdiv"),
-  scaling          = TRUE,
-  check_input      = TRUE,
-  details_returned = TRUE)
-
-fd_RR <- fd_indices_RR$functional_diversity_indices
-
-write.csv(fd_RR, file="data/fd_RR.csv")
-
-################## end of code ##################
+############## end of code 
