@@ -127,7 +127,8 @@ fspaces_quality <- mFD::quality.fspaces(
 # retrieve table of quality metric:
 fspaces_quality$quality_fspaces
 
-# We can see that the functional space with the lowest quality metric is the one with 4 dimensions (pcoa_4d=0.037),
+# We can see that the functional space with the lowest quality metric 
+#is the one with 4 dimensions (pcoa_4d=0.037),
 
 # illustrate quality of functional space (for Supp Material)
 
@@ -200,8 +201,9 @@ fish_replicates <-fish_tosum %>%
   pivot_wider(names_from = "species", values_from = "total") %>%
   mutate(Code=paste(Site, Replicate, HabitatID, sep="_"), .before="Site") %>% 
   select(-Site, -HabitatID,-Replicate) %>% 
-  column_to_rownames("Code") %>% 
+    column_to_rownames("Code") %>% 
   as.matrix()
+   
 
 ### Compute indices:
 alpha_fd_indices <- mFD::alpha.fd.multidim(
@@ -211,7 +213,6 @@ alpha_fd_indices <- mFD::alpha.fd.multidim(
   scaling          = TRUE,
   check_input      = TRUE,
   details_returned = TRUE)
-
 
 fd_values_replicates <- alpha_fd_indices$functional_diversity_indices
 
@@ -236,46 +237,6 @@ habitat_fric <- rbind(
   Rocky = apply(fish_replicates[metadata_replicates[which(metadata_replicates$HabitatID=="R"),"Code"],],2,max )
 ) 
 
-# Set faxes limits:
-# set range of axes if c(NA, NA):
-range_sp_coord_habitat  <- range(faxes_coord_habitat)
-range_faxes_lim <- range_sp_coord_habitat + c(-1, 1)*(range_sp_coord_habitat[2] - 
-                                                       range_sp_coord_habitat[1]) * 0.05
-
-# Retrieve the background plot:
-ggplot_bg_habitat <- mFD::background.plot(
-  range_faxes = range_faxes_lim, 
-  faxes_nm    = c("PC 1", "PC 2"), 
-  color_bg    = "grey90") 
-
-# Retrieve vertices names:
-
-sp_faxes_coord_habitat_2D <- faxes_coord_habitat[, c("PC1", "PC2")]
-
-vert_nm_habitat <- vertices(sp_faxes_coord_habitat_2D, 
-                           order_2D = TRUE, check_input = TRUE)
-
-# Plot in white the convex hull of all fruits species:
-ggplot_fric <- mFD::fric.plot(
-  ggplot_bg       = ggplot_bg_habitat,
-  asb_sp_coord2D  = list(c("Kelp" =sp_faxes_coord_habitat_2D,
-                           "Rocky" =sp_faxes_coord_habitat_2D)),
-  asb_vertices_nD = list(c(vert_nm_habitat)),
-  plot_sp         = TRUE,
-  color_ch        = c("Kelp" = "black", "Rocky" = "red"), 
-  fill_ch         = c("Kelp" = "black", "Rocky" = "red"), 
-  alpha_ch        = c("Kelp" = 0.3, "Rocky" = 0.3),
-  size_sp = c("Kelp" = 1, "Rocky" = 1),
-  shape_sp = c("Kelp" = 16, "Rocky" = 16),
-  color_sp = c("Kelp" = "black", "Rocky" = "red"),
-  fill_sp = c("Kelp" = "black", "Rocky" = "red"),
-  size_vert = c("Kelp" = 1, "Rocky" = 1),
-  color_vert = c("Kelp" = "black", "Rocky" = "red"),
-  fill_vert = c("Kelp" = "black", "Rocky" = "red"),
-  shape_vert = c("Kelp" = 16, "Rocky" = 16))
-
-ggplot_fric
-### This one is not working - keep trying 
 
 ### Calculate fric for kelp and rocky reef
 
@@ -293,7 +254,7 @@ plots_alpha <- mFD::alpha.multidim.plot(
   output_alpha_fd_multidim = fd_habitat,
   plot_asb_nm              = c("Kelp", "Rocky"),
   ind_nm                   = c("fric"),
-  faxes                    = paste0("PC", 1:3),
+  faxes                    = paste0("PC", 1:4),
   faxes_nm                 = NULL,
   range_faxes              = c(NA, NA),
   color_bg                 = "grey95",
