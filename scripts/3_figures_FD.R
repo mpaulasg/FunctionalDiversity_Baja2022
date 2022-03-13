@@ -42,6 +42,26 @@ fd_all <- fd_both %>%
   select(-X, -HabitatID, -Replicate) %>% 
   relocate(Site, Habitat, .before = "sp_richn")
 
+ind_toplot <- fd_all %>%
+  group_by(Habitat, Site) %>%
+  summarise( 
+    n = n(),
+    sp_mean = mean(sp_richn),
+    sp_sd = sd(sp_richn),
+    FRic_mean = mean(fric),
+    FRic_sd = sd(fric),
+    FEve_mean = mean(feve),
+    FEve_sd = sd(feve),
+    Fdiv_mean = mean(fdiv),
+    Fdiv_sd = sd(fdiv),
+  ) %>%
+  mutate( sp_se = sp_sd/sqrt(n))  %>%
+  mutate( FRic_se = FRic_sd/sqrt(n)) %>% 
+  mutate( FEve_se = FEve_sd/sqrt(n))  %>%
+  mutate( Fdiv_se = Fdiv_sd/sqrt(n))
+
+ind_toplot
+
 
 # color code for the 2 habitats
 
@@ -49,8 +69,43 @@ hab_colors <- c(Kelp = "mediumseagreen", Rocky ="sienna")
 
 #Species richness (S)
 
+##Option violin plot
+
+sp_rich <- ggplot(fd_all, aes(x=Site, y=sp_richn, fill = Habitat)) +
+  geom_violin()+
+  geom_point(shape = 21, position = position_jitterdodge(jitter.width = 0))+
+  stat_summary(fun = "mean",
+               geom = "point",
+               color = "red")+
+  #ggplot(ind_toplot) +
+  #geom_bar( aes(x=Site, y=sp_mean, fill = Habitat),  ## THIS IS FOR BAR PLOT
+            #stat="identity", color = "black", size=0.8) +
+  #geom_errorbar( aes(x=Site, ymin=sp_mean-sp_se, ymax=sp_mean+sp_se), width=0.1, size=0.8, colour="black" ) +
+  facet_wrap(~Habitat, scales="free_x", labeller = labeller(habitat = 
+  c("Kelp_forests" = "Kelp forests", "Rocky_reefs" = "Rocky reefs")))+
+  labs(x="Sites", y="Species richness") 
+
+mytheme <- theme(panel.background=element_rect(fill="white"), 
+                 panel.grid.minor = element_blank(), axis.ticks = element_blank(), 
+                 panel.grid.major = element_blank(),
+                 axis.line = element_line(size = 1, colour = "black"),
+                 axis.text = element_text(size = (14),colour = "black"), 
+                 axis.title = element_text(size= (16)),
+                 legend.position = "none" , 
+                 strip.text.x = element_text(size = 14))
+
+plot_sp_rich <- print(sp_rich + mytheme + 
+                        scale_x_discrete(labels=c("CK_K"="CK", "LB_K"="LB", "LR_K" = "LR",
+                                                  "RB_K"="RB", "LR_R"="LR", "PM_R"="PM", "RB_R"="RB", "Z_R"="Z")))
+
+ggsave(plot_sp_rich , file=here::here("figures/", "figure2_violin.png"),
+       height = 22, width = 25, unit = "cm" )
+
+### OPTION BOXPLOT
+
 sp_rich <- ggplot(fd_all, aes(x=Site, y=sp_richn, fill = Habitat)) +
   geom_boxplot()+
+  stat_summary(fun=mean, geom="point", shape=20, size=14, color="red", fill="red")+
   geom_point(shape = 21, position = position_jitterdodge(jitter.width = 0))+
   facet_wrap(~Habitat, scales="free_x", labeller = labeller(Habitat = 
 c("Kelp" = "Kelp forests", 
