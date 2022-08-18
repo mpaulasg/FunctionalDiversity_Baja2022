@@ -238,6 +238,7 @@ habitat_fric <- rbind(
 ) 
 
 
+
 ### Calculate fric for kelp and rocky reef
 
 fd_habitat <- mFD::alpha.fd.multidim(
@@ -248,7 +249,13 @@ fd_habitat <- mFD::alpha.fd.multidim(
   check_input      = TRUE,
   details_returned = TRUE)
 
-fd_habitat_replicates <- fd_habitat$functional_diversity_indices
+
+fd_habitat$details$asb_vert_nm$Kelp
+
+fd_habitat$details$asb_vert_nm$Rocky
+
+habitat_fric[2,]
+
 
 plots_alpha <- mFD::alpha.multidim.plot(
   output_alpha_fd_multidim = fd_habitat,
@@ -273,11 +280,11 @@ plots_alpha <- mFD::alpha.multidim.plot(
   color_centroid_fspe      = "black",
   size_sp_nm               = 3, 
   #color_sp_nm              = "black",
-  plot_sp_nm               = NULL,
+  plot_sp_nm               = c("Haemulon.californiensis" ),
   #fontface_sp_nm           = "plain",
   save_file                = FALSE,
   check_input              = TRUE) 
-
+ #"Sebastes.melanops","Scorpaena.guttata" ,"Gymnothorax.mordax" ,"Haemulon.californiensis" 
 
 plot_fric <- plots_alpha$"fric"$"patchwork"
 plot_fric
